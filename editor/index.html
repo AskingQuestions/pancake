@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0" />
+	<title>Starter Template - Materialize</title>
+
+	<!-- CSS  -->
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<link href="/css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection" />
+	<link href="/css/style.css" type="text/css" rel="stylesheet" media="screen,projection" />
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.8/ace.js" type="text/javascript" charset="utf-8"></script>
+</head>
+
+<body>
+	<nav class="light-blue lighten-1" role="navigation">
+		<div class="nav-wrapper container">
+			<a id="logo-container" href="#" class="brand-logo">🥞 Pancake</a>
+			<ul class="right hide-on-med-and-down">
+				<li>
+					<a href="#">Home <i class="material-icons right">home</i></a>
+				</li>
+				<li><a href="/editor">Online Editor <i class="material-icons right">edit</i></a></li>
+			</ul>
+
+			<ul id="nav-mobile" class="sidenav">
+				<li>
+					<a href="#">Home <i class="material-icons right">home</i></a>
+				</li>
+				<li><a href="/editor">Online Editor <i class="material-icons right">edit</i></a></li>
+			</ul>
+			<a href="#" data-target="nav-mobile" class="sidenav-trigger">
+				<i class="material-icons">menu</i>
+			</a>
+		</div>
+	</nav>
+
+
+	<div class="blue-grey darken-3 container" style="position: relative; height: 300px">
+		<div id="pancake" style="height: 100%;"></div>
+		<div class="btn blue waves-effect" id="run" style="position: absolute; right: 0; bottom: 0; margin: 10px;">Run</div>
+		
+	</div>
+	<div class="container">
+		<label>Output</label>
+		<pre id="output">
+
+		</pre>
+	</div>
+
+
+	<script>
+		var editor = ace.edit("pancake");
+		editor.getSession().setOptions({useSoftTabs: false, tabSize: 4});
+		editor.getSession().setMode("ace/mode/pig");
+		editor.setValue("'Hello, world.' print");
+		editor.setTheme("ace/theme/chaos");
+		editor.setShowPrintMargin(false);
+		let output = document.getElementById("output");
+		document.getElementById("run").addEventListener("click", () => {
+			let out = "";
+			let src = editor.getValue();
+			let engine = new Pancake.Engine();
+			let parser = new Pancake.Parser();
+			let tokens = parser.parse(src);
+
+			let outputLog = "";
+
+			let lines = [];
+			for (let i = 0; i < src.length; i++)
+				if (src[i] == "\n")
+					lines.push(i);
+
+			for (let error of parser.errors) {
+				let line = 0;
+				let column = 0;
+				for (let i = 0; i < lines.length; i++)
+					if (error[0] > lines[i]) {
+						line = i;
+						column = error[0] - lines[i];
+					}
+
+				outputLog += "<label class='red-text'>Error: " + error[1] + " at " + line + ":" + column + "</label><br>";
+			}
+
+			let block = engine.build(tokens);
+
+			let stack = new Pancake.Stack(50);
+			Pancake.Commands.print.prototype.run = (caller, stack) => {
+				let val = stack.readValue(-1);
+				if (typeof val == "object")
+					val = JSON.stringify(val);
+				outputLog += val + "\n";
+			};
+			block.execute(stack);
+
+			output.innerHTML = outputLog;
+		});
+	</script>
+	<footer class="page-footer orange">
+		<div class="footer-copyright">
+			<div class="container">
+				Links
+				<a class="orange-text text-lighten-3" href="https://github.com/ABlueWhale/pancake">GitHub</a>
+			</div>
+		</div>
+	</footer>
+
+	<script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+	<script src="/js/materialize.js"></script>
+	<script src="/js/init.js"></script>
+	<script src="/pancake.js"></script>
+
+</body>
+
+</html>
